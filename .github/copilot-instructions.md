@@ -4,20 +4,31 @@
 
 You do NOT read files manually or guess at code structure. You use VS Code's built-in tools for everything. These tools are your eyes and hands.
 
+## Two Agents, Two Files
+
+This workspace has two self-contained agent definitions:
+
+| File | Agent | Trigger | Output |
+|---|---|---|---|
+| `.github/codegraph.md` | Code Graph Builder | "build code graph" | `CODE_GRAPH.md` |
+| `.github/loganalysis.md` | Log Analysis | "analyze logs" | `LOG_ANALYSIS.md` |
+
+When a user triggers a task, read the corresponding agent file and follow its pipeline exactly.
+
 ## Tool Catalog (memorize this)
 
 ### Read-Only Tools (auto-approved — use freely)
 | Tool | When to Use | Token Cost |
 |---|---|---|
-| `#search` with `codebase` | "Where is X?" / "How does X work?" — semantic search | Medium |
-| `#search` with `text` | Find exact strings, error messages, literals | Low |
-| `#search` with `files` | Find files by name/glob pattern | Low |
-| `#search` with `usages` | Who calls this function/variable? | Medium |
-| `#search` with `changes` | What changed recently? (incident triage) | Low |
-| `#read` with `file` | Read an entire file (avoid for files >500 lines) | High |
-| `#read` with `symbol` | Read one function/class definition (PREFERRED) | Low |
-| `#read` with `problems` | What errors/warnings exist right now? | Low |
-| `#workspace` | Directory tree, open editors, settings | Low |
+| `search/codebase` | "Where is X?" / "How does X work?" — semantic search | Medium |
+| `search/text` | Find exact strings, error messages, literals | Low |
+| `search/files` | Find files by name/glob pattern | Low |
+| `search/usages` | Who calls this function/variable? | Medium |
+| `search/changes` | What changed recently? (incident triage) | Low |
+| `read/file` | Read an entire file (avoid for files >500 lines) | High |
+| `read/symbol` | Read one function/class definition (PREFERRED) | Low |
+| `read/problems` | What errors/warnings exist right now? | Low |
+| `workspace/tree` | Directory tree | Low |
 | `lsp/definition` | Jump to where a symbol is defined | Low |
 | `lsp/references` | All reference sites (compiler-precise) | Medium |
 | `lsp/hover` | Type signature + docs (CHEAPEST type info) | Very Low |
@@ -30,15 +41,15 @@ You do NOT read files manually or guess at code structure. You use VS Code's bui
 ### Write Tools (require diff preview)
 | Tool | When to Use |
 |---|---|
-| `#edit` with `replace` | Change a specific string/range (PREFERRED — surgical) |
-| `#edit` with `file` | Apply multiple edits to a file |
-| `#edit` with `create` | Create a new file |
+| `edit/replace` | Change a specific string/range (PREFERRED — surgical) |
+| `edit/file` | Apply multiple edits to a file |
+| `edit/create` | Create a new file |
 
 ### Execute Tools (allowlisted)
 | Tool | When to Use |
 |---|---|
-| `#execute` / `terminal/run` | Run tests, builds, one-shot commands |
-| `#execute` / `terminal/background` | Start dev server, watcher (non-blocking) |
+| `terminal/run` | Run tests, builds, one-shot commands |
+| `terminal/background` | Start dev server, watcher (non-blocking) |
 | `test/run` | Run all tests |
 | `test/runFailed` | Re-run only failing tests (FAST iteration) |
 | `test/results` | Read last results without re-running (FREE) |
@@ -72,38 +83,12 @@ A task is not complete until:
 ### 5. No Fabrication
 Every claim must cite a `file:line`. If a tool returns empty results, say "not found" — don't guess.
 
-## Workflow: Code Graph → Log Analysis
+## The Two-Phase Workflow
 
-This repo supports a two-phase agent workflow:
+```
+"build code graph" → CODE_GRAPH.md (architecture, deps, call chains, blast radius)
+        ↓
+"analyze logs"     → LOG_ANALYSIS.md (incidents traced to code root causes)
+```
 
-### Phase 1: Code Graph Builder
-When the user says "build code graph" or "map this codebase":
-1. Use `search/files`, `workspace/tree` to inventory all files
-2. Use `search/text` to trace imports/dependencies
-3. Use `lsp/documentSymbols` to map structure
-4. Use `graph/callgraph` to trace call chains
-5. Use `graph/dataflow` to trace data paths
-6. Use `read/problems` to find diagnostics
-7. Write `CODE_GRAPH.md` with the full analysis
-
-### Phase 2: Log Analysis
-When the user says "analyze logs" or "investigate incident":
-1. Read `CODE_GRAPH.md` first (if missing, invoke Phase 1)
-2. Use `read/file` to read log files from `logs/`
-3. Use `search/text` to find errors in logs
-4. Use `read/symbol` to read the functions that generated the errors
-5. Use `graph/callgraph` to trace the error path through code
-6. Write `LOG_ANALYSIS.md` with incident reports
-
-## Available Chat Modes
-| Mode | Trigger | Tools |
-|---|---|---|
-| **@code-graph-builder** | "build code graph" | read, search, workspace, lsp, graph |
-| **@log-analysis** | "analyze logs" | read, search, lsp, graph + logs/ access |
-| **@bug-triage** | "investigate bug" | read, search, debug, test, graph, git |
-
-## File Conventions
-- `CODE_GRAPH.md` — structural analysis (generated by code graph agent)
-- `LOG_ANALYSIS.md` — incident reports (generated by log analysis agent)
-- `logs/` — application logs for analysis
-- `.github/instructions/` — reusable tool patterns and templates
+The log analysis agent reads `CODE_GRAPH.md` first — it needs the call graph and blast radius to trace errors efficiently. Build the graph first.
