@@ -1,0 +1,27 @@
+2026-07-12T08:00:00.000Z INFO  [main] Application started on port 8080
+2026-07-12T08:00:00.001Z INFO  [main] Configuration loaded from config.yaml
+2026-07-12T08:00:00.002Z INFO  [main] Database connection established
+2026-07-12T08:00:00.003Z INFO  [router] 4 route handlers registered
+2026-07-12T08:02:14.000Z INFO  [api] POST /api/users 201 user_id=u-1001
+2026-07-12T08:02:15.000Z INFO  [api] POST /api/users 201 user_id=u-1002
+2026-07-12T08:05:00.000Z INFO  [api] POST /api/orders 201 order_id=o-5001 user_id=u-1001 amount=29.99
+2026-07-12T08:05:01.000Z INFO  [api] POST /api/orders 201 order_id=o-5002 user_id=u-1001 amount=150.00
+2026-07-12T08:05:02.000Z INFO  [api] POST /api/orders 201 order_id=o-5003 user_id=u-1002 amount=9.99
+2026-07-12T08:10:00.000Z WARN  [api] POST /api/orders 400 user_id=u-1001 error="validation failed: missing field 'shipping_address'"
+2026-07-12T08:10:01.000Z WARN  [validation] Order validation failed for user_id=u-1001: missing required field
+2026-07-12T08:15:00.000Z ERROR [api] POST /api/payments/process 500 user_id=u-1001 order_id=o-5001 error="PaymentGatewayException: connection timeout after 30000ms"
+2026-07-12T08:15:01.000Z ERROR [payment] PaymentGatewayException at payment_service.js:142 - connection timeout after 30000ms
+2026-07-12T08:15:02.000Z ERROR [payment] Failed to process payment for order_id=o-5001 amount=29.99
+2026-07-12T08:15:03.000Z ERROR [db] Transaction rollback for order_id=o-5001
+2026-07-12T08:20:00.000Z WARN  [api] POST /api/orders 429 user_id=u-1001 error="rate limit exceeded: 100 requests per minute"
+2026-07-12T08:20:01.000Z WARN  [rate_limit] User u-1001 exceeded rate limit: 105/100 requests per minute
+2026-07-12T09:00:00.000Z ERROR [auth] Authentication failed: invalid token for user_id=u-1002
+2026-07-12T09:00:01.000Z WARN  [auth] Token validation failed at auth_service.js:78 - signature mismatch
+2026-07-12T09:05:00.000Z FATAL [server] Unhandled exception: TypeError: Cannot read property 'id' of undefined at user_controller.js:45
+2026-07-12T09:05:01.000Z FATAL [server] Stack trace: at processOrder (user_controller.js:45) at handleRequest (router.js:22) at Server.<anonymous> (server.js:12)
+2026-07-12T09:05:02.000Z ERROR [server] Request failed: GET /api/users/undefined/orders
+2026-07-12T09:10:00.000Z INFO  [api] POST /api/payments/retry 200 order_id=o-5001 status=completed
+2026-07-12T09:10:01.000Z INFO  [payment] Payment succeeded on retry for order_id=o-5001
+2026-07-12T09:15:00.000Z INFO  [api] GET /api/users/u-1001/orders 200 count=2
+2026-07-12T09:20:00.000Z INFO  [api] GET /health 200 status=ok
+2026-07-12T10:00:00.000Z INFO  [api] GET /api/metrics 200 requests=1542 errors=8 avg_latency=142ms

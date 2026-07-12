@@ -1,0 +1,32 @@
+{
+  "chat.tools.read.autoApprove": true,
+  "chat.tools.search.autoApprove": true,
+  "chat.tools.workspace.autoApprove": true,
+  "chat.tools.lsp.autoApprove": true,
+  "chat.tools.graph.autoApprove": true,
+  "chat.tools.gitRead.autoApprove": true,
+  "chat.tools.test.autoApprove": true,
+  "chat.tools.terminal.autoApprove": {
+    "allow": [
+      "python3 -m pytest *",
+      "npm test *",
+      "npm run *",
+      "go test *",
+      "cargo test *",
+      "dotnet test *",
+      "git status",
+      "git diff",
+      "git log *"
+    ],
+    "deny": [
+      "rm -rf *",
+      "sudo *",
+      "git push *",
+      "git checkout -- *"
+    ]
+  },
+  "chat.tools.edit.requireDiffPreview": true,
+  "chat.tools.debug.requireApproval": true,
+  "chat.agent.sandbox.filesystem": "workspace",
+  "chat.agent.sandbox.network": "allowlist"
+}

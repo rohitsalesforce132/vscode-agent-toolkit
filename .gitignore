@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+
+# Logs (keep the sample, ignore real logs)
+logs/*.log
+!logs/app.log
+
+# Generated output
+CODE_GRAPH.md
+LOG_ANALYSIS.md
