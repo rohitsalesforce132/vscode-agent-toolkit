@@ -1,19 +1,25 @@
 # Copilot Agent Instructions
 
-## Two Slash Commands
+## Three Slash Commands
 
 | Command | What It Does | Output |
 |---|---|---|
-| `/analyze-code` | Maps any codebase: dependencies, call chains, blast radius, data flow | Writes **`codegraph.md`** at repo root |
-| `/analyze-logs` | Analyzes a user-specified log file using `codegraph.md` as the map | Writes **`log-analysis.md`** at repo root |
+| `/analyze-code` | Maps any codebase: dependencies, call chains, blast radius, data flow | Writes **`codegraph.md`** |
+| `/analyze-logs` | Analyzes application logs using `codegraph.md` as the map | Writes **`log-analysis.md`** |
+| `/analyze-aks` | Diagnoses AKS infrastructure: pods, nodes, networking, OOM, ingress | Writes **`aks-analysis.md`** |
 
 ## Workflow
 
 ```
-/analyze-code  →  codegraph.md  →  /analyze-logs <logfile>  →  log-analysis.md
+/analyze-code  →  codegraph.md
+                      ↓
+/analyze-logs <logfile>  →  log-analysis.md
+
+/analyze-aks <aks-logfile>  →  aks-analysis.md
 ```
 
-`/analyze-logs` **requires** `codegraph.md` to exist. If it's missing, the agent stops and tells the user to run `/analyze-code` first.
+`/analyze-logs` requires `codegraph.md`. If missing, stops and tells user to run `/analyze-code` first.
+`/analyze-aks` works standalone or with `codegraph.md` for deeper tracing.
 
 ## Allowed Tools
 
@@ -25,14 +31,14 @@
 | `lsp/*` | definition, declaration, typeDefinition, references, hover, implementation, documentSymbols, workspaceSymbols | ✅ |
 | `graph/*` | dependencies, callgraph, controlflow, dataflow, context, knowledge | ✅ |
 | `git` (read) | status, diff, log | ✅ |
-| `edit/create` | Write `codegraph.md` or `log-analysis.md` (Phase 7 only) | ✅ |
-| `edit/file` | Overwrite `codegraph.md` or `log-analysis.md` if exists | ✅ |
+| `edit/create` | Write output `.md` files (Phase 7 only) | ✅ |
+| `edit/file` | Overwrite output `.md` files if they exist | ✅ |
 
 ## Blocked Tools
 
 | Family | Tools | Status |
 |---|---|---|
-| `edit/file` | On any file OTHER than codegraph.md / log-analysis.md | ❌ BLOCKED |
+| `edit/file` | On any file OTHER than `codegraph.md` / `log-analysis.md` / `aks-analysis.md` | ❌ BLOCKED |
 | `edit/delete` | Any file | ❌ BLOCKED |
 | `edit/rename` | Any file | ❌ BLOCKED |
 | `terminal/*` | run, background, kill | ❌ BLOCKED |
@@ -50,15 +56,15 @@ All output files must be PII-free. Scan and redact before writing:
 | IP addresses | `[REDACTED_IP]` |
 | Phone numbers | `[REDACTED_PHONE]` |
 | Credit card numbers | `[REDACTED_CC]` |
-| API keys / tokens | `[REDACTED_TOKEN]` |
+| API keys / tokens / passwords | `[REDACTED_TOKEN]` / `password = [REDACTED]` |
 | User IDs | `[REDACTED_USER_ID]` |
 | Session IDs | `[REDACTED_SESSION]` |
 | AWS keys (AKIA...) | `[REDACTED_AWS_KEY]` |
 | SSN (xxx-xx-xxxx) | `[REDACTED_SSN]` |
-| Passwords in config | `password = [REDACTED]` |
-| Street addresses | `[REDACTED_ADDRESS]` |
-
-**Never** write real credentials, emails, phone numbers, IPs, or tokens to `codegraph.md` or `log-analysis.md`.
+| Azure Resource IDs | `[REDACTED_RESOURCE_ID]` |
+| Azure GUIDs / tenant IDs | `[REDACTED_GUID]` |
+| ACR login servers | `[REDACTED_ACR]` |
+| MAC addresses | `[REDACTED_MAC]` |
 
 ## Tool Selection Priority
 
@@ -74,11 +80,11 @@ graph/dependencies  → module relationships    (~300 tokens)
 
 ## Golden Rules
 
-1. **Write to files, not chat.** `/analyze-code` → `codegraph.md`, `/analyze-logs` → `log-analysis.md`.
-2. **Read-only until Phase 7.** Use only search/read/lsp/graph tools during analysis. Write only at the end.
+1. **Write to files, not chat.** Each command writes its own `.md` file at repo root.
+2. **Read-only until Phase 7.** Use only search/read/lsp/graph tools during analysis.
 3. **`codegraph.md` is the bridge.** `/analyze-logs` reads it. If missing, stop.
-4. **Redact all PII.** No emails, keys, tokens, IPs, phone numbers, user IDs in output files.
+4. **Redact all PII.** No emails, keys, tokens, IPs, GUIDs, resource IDs in output.
 5. **Cheapest tool first.** `lsp/hover` → `read/symbol` → `read/file`.
 6. **Always cite file:line.** Every claim must have a verifiable source.
 7. **No fabrication.** If a tool returns empty, say "not found."
-8. **Language-agnostic.** Detect language from file extensions, adapt patterns.
+8. **Check YAML for AKS.** 80% of AKS issues are in deployment manifests, not application code.

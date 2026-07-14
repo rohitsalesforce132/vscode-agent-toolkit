@@ -1,19 +1,15 @@
 # VS Code Agent Toolkit
 
-> Two slash commands for VS Code Copilot Chat. `/analyze-code` builds a code graph, `/analyze-logs` uses it to investigate incidents. No scripts, no dependencies — pure agent tools.
+> Three slash commands for VS Code Copilot Chat. Build code graphs, analyze application logs, and diagnose AKS infrastructure — no scripts, no dependencies, pure agent tools.
 
 ## How It Works
 
 ```
-/analyze-code              /analyze-logs <logfile>
-      ↓                           ↓
-  codegraph.md    ←── read ──  log-analysis.md
-  (the map)                     (the report)
+/analyze-code              /analyze-logs <logfile>          /analyze-aks <aks-logfile>
+      ↓                           ↓                                ↓
+  codegraph.md    ←── read ──  log-analysis.md               aks-analysis.md
+  (the map)                    (app incidents)               (infra incidents)
 ```
-
-1. Run `/analyze-code` → agent maps your codebase → writes `codegraph.md`
-2. Run `/analyze-logs app/logs/error.log` → agent reads `codegraph.md` + your log file → writes `log-analysis.md`
-3. All PII is automatically redacted in both output files
 
 ## Quick Start
 
@@ -22,57 +18,55 @@ git clone https://github.com/rohitsalesforce132/vscode-agent-toolkit.git
 code vscode-agent-toolkit
 ```
 
-Open Copilot Chat (`Ctrl+Shift+I`), type `/analyze-code`.
+Open Copilot Chat (`Ctrl+Shift+I`), type `/` to see all three commands.
 
 ## Slash Commands
 
 | Command | Input | Output | Description |
 |---|---|---|---|
-| `/analyze-code` | Current workspace | `codegraph.md` | Maps architecture, dependencies, call chains, blast radius, data flow |
-| `/analyze-logs` | Log file path | `log-analysis.md` | Correlates log errors with code paths using `codegraph.md` |
+| `/analyze-code` | Current workspace | `codegraph.md` | Maps architecture, dependencies, call chains, blast radius |
+| `/analyze-logs` | App log file path | `log-analysis.md` | Correlates app log errors with code paths |
+| `/analyze-aks` | AKS log file path | `aks-analysis.md` | Diagnoses K8s pods, nodes, networking, OOM, ingress |
 
 ## File Structure
 
 ```
 .github/
-├── analyze-code.prompt.md     ← /analyze-code slash command
-├── analyze-logs.prompt.md     ← /analyze-logs slash command
-├── copilot-instructions.md    ← Global rules (PII redaction, tool tiers)
-├── codegraph.md               ← Code graph agent context
-└── loganalysis.md             ← Log analysis agent context
+├── prompts/
+│   ├── analyze-code.prompt.md     ← /analyze-code
+│   ├── analyze-logs.prompt.md     ← /analyze-logs
+│   └── analyze-aks.prompt.md      ← /analyze-aks
+├── copilot-instructions.md        ← Global rules (PII redaction, tool tiers)
+├── codegraph.md                   ← Code graph agent context
+└── loganalysis.md                 ← Log analysis agent context
 .vscode/
-├── mcp.json                   ← MCP server config (optional)
-└── settings.json              ← Auto-approve rules
+├── mcp.json                       ← MCP server config (optional)
+└── settings.json                  ← Auto-approve rules
 logs/
-└── app.log                    ← Sample log (for testing)
+├── app.log                        ← Sample app log
+└── aks-infra.log                  ← Sample AKS infrastructure log
 ```
 
-## What `/analyze-code` Produces
+## `/analyze-aks` — AKS Infrastructure Analyzer
 
-Writes `codegraph.md` at repo root with 7 sections:
+Diagnoses across 6 Kubernetes layers:
 
-1. **Architecture Overview** — annotated file tree, language, framework
-2. **Dependency Graph** — layered modules, circular dependency detection
-3. **Call Graph** — critical chains with file:line + **blast radius table**
-4. **API Surface** — endpoints, handlers, service dependencies
-5. **Data Flow** — source → sink paths
-6. **Diagnostics** — linter errors, TODO/FIXME debt
-7. **Risk Areas** — high coupling, dead code, security concerns
+| Layer | What It Detects |
+|---|---|
+| **Control Plane** | etcd timeouts, API server issues, scheduler failures |
+| **Node / kubelet** | MemoryPressure, DiskPressure, PIDPressure, evictions, node NotReady |
+| **Network** | DNS failures, SNAT exhaustion, NetworkPolicy blocks, connection refused |
+| **Workload / Pod** | CrashLoopBackOff, OOMKilled, ImagePullBackOff, FailedScheduling |
+| **Storage** | FailedMount, PVC pending, CSI driver errors |
+| **Ingress** | NGINX/Traefik/App Gateway 502/503/504, upstream timeouts, TLS errors |
 
-## What `/analyze-logs` Produces
+Recognizes Azure-specific patterns: ACR auth failures, managed identity errors, subnet exhaustion, load balancer stuck pending, VM reboots.
 
-Writes `log-analysis.md` at repo root:
-
-1. **Incident Classification** — severity, entity (redacted), subsystem, window
-2. **Event Timeline** — merged and ordered by timestamp
-3. **Root Cause** — causal chain from user action to error
-4. **Code Path** — traced using `codegraph.md` call graph (handler → service → failure)
-5. **Recommended Actions** — specific fixes with file:file:line
-6. **Recent Changes** — git commits correlated with incidents
+Includes KQL (Kusto) table reference for Azure Monitor / Log Analytics exports.
 
 ## PII Redaction
 
-Both agents redact PII before writing output files:
+All agents redact PII before writing output files:
 
 | Type | Redacted To |
 |---|---|
@@ -81,7 +75,10 @@ Both agents redact PII before writing output files:
 | Phone numbers | `[REDACTED_PHONE]` |
 | API keys / tokens | `[REDACTED_TOKEN]` |
 | User IDs | `[REDACTED_USER_ID]` |
-| Session IDs | `[REDACTED_SESSION]` |
+| Azure Resource IDs | `[REDACTED_RESOURCE_ID]` |
+| Azure GUIDs / tenant IDs | `[REDACTED_GUID]` |
+| ACR login servers | `[REDACTED_ACR]` |
+| MAC addresses | `[REDACTED_MAC]` |
 | Credit cards | `[REDACTED_CC]` |
 | AWS keys | `[REDACTED_AWS_KEY]` |
 | SSN | `[REDACTED_SSN]` |
@@ -93,11 +90,11 @@ Both agents redact PII before writing output files:
 |---|---|
 | Search | `codebase`, `text`, `regex`, `files`, `usages`, `changes`, `symbols` |
 | Reading | `file`, `symbol`, `selection`, `problems` |
-| Workspace | `tree`, ``files`, `openEditors`, `settings` |
+| Workspace | `tree`, `files`, `openEditors`, `settings` |
 | LSP | `definition`, `references`, `hover`, `implementation`, `documentSymbols` |
 | Graph | `dependencies`, `callgraph`, `dataflow`, `context` |
 | Git (read) | `status`, `diff`, `log` |
-| Edit (Phase 7 only) | `create`, `file` — **only** for `codegraph.md` / `log-analysis.md` |
+| Edit (Phase 7 only) | `create`, `file` — **only** for output `.md` files |
 
 **Blocked:** `terminal/*`, `debug/*`, `test/*`, `edit/delete`, `edit/rename`, `git/commit`, `git/checkout`
 
