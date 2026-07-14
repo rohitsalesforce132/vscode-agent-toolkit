@@ -34,18 +34,17 @@ Open Copilot Chat (`Ctrl+Shift+I`), type `/analyze-code`.
 ## File Structure
 
 ```
-.vscode/
-├── prompts/
-│   ├── analyze-code.prompt.md    ← /analyze-code agent
-│   └── analyze-logs.prompt.md    ← /analyze-logs agent
-├── mcp.json                      ← MCP server config (optional)
-└── settings.json                 ← Auto-approve rules
 .github/
-├── copilot-instructions.md       ← Global rules (PII redaction, tool tiers)
-├── codegraph.md                  ← Code graph agent context
-└── loganalysis.md                ← Log analysis agent context
+├── analyze-code.prompt.md     ← /analyze-code slash command
+├── analyze-logs.prompt.md     ← /analyze-logs slash command
+├── copilot-instructions.md    ← Global rules (PII redaction, tool tiers)
+├── codegraph.md               ← Code graph agent context
+└── loganalysis.md             ← Log analysis agent context
+.vscode/
+├── mcp.json                   ← MCP server config (optional)
+└── settings.json              ← Auto-approve rules
 logs/
-└── app.log                       ← Sample log (for testing)
+└── app.log                    ← Sample log (for testing)
 ```
 
 ## What `/analyze-code` Produces
@@ -68,7 +67,7 @@ Writes `log-analysis.md` at repo root:
 2. **Event Timeline** — merged and ordered by timestamp
 3. **Root Cause** — causal chain from user action to error
 4. **Code Path** — traced using `codegraph.md` call graph (handler → service → failure)
-5. **Recommended Actions** — specific fixes with file:line
+5. **Recommended Actions** — specific fixes with file:file:line
 6. **Recent Changes** — git commits correlated with incidents
 
 ## PII Redaction
@@ -94,7 +93,7 @@ Both agents redact PII before writing output files:
 |---|---|
 | Search | `codebase`, `text`, `regex`, `files`, `usages`, `changes`, `symbols` |
 | Reading | `file`, `symbol`, `selection`, `problems` |
-| Workspace | `tree`, `files`, `openEditors`, `settings` |
+| Workspace | `tree`, ``files`, `openEditors`, `settings` |
 | LSP | `definition`, `references`, `hover`, `implementation`, `documentSymbols` |
 | Graph | `dependencies`, `callgraph`, `dataflow`, `context` |
 | Git (read) | `status`, `diff`, `log` |
